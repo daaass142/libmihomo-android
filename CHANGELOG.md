@@ -8,6 +8,32 @@ Until v1.0 the public API is considered unstable; breaking changes bump
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-08-17
+
+### Changed
+- Bumped bundled [metacubex/mihomo](https://github.com/MetaCubeX/mihomo)
+  `v1.19.29` → `v1.19.30` (83 upstream commits). Security-relevant:
+  **CVE-2026-56862** in `crypto/tls` (via `metacubex/tls` `0.1.7` → `0.1.8`).
+  Two fixes land directly on our client path — the sing_tun UDP DNS-hijack
+  path sent zero-filled or stale packets whenever a reply's uncompressed size
+  exceeded `SafeDnsPacketSize` (`PackBuffer` reallocating out from under the
+  send buffer), and Tailscale no longer fails to recover after the network
+  comes back. The rest is DNS correctness (echo EDNS0 opt, truncate UDP
+  replies to the client's advertised buffer, DNS initialized before NTP), a
+  large sniffer rework (H2C/QUICv2 sniffing, cross-record ClientHello
+  assembly, coalesced QUIC packets, no more waits on partial reads,
+  connections stay open after a failed sniff), and additive outbounds
+  (ZeroTier, AmneziaWG 3.0/3.1, anytls `client-metadata`, hysteria2
+  `handshake-timeout`, an `ip-stack` option for wireguard/masque/openvpn).
+  New indirect deps `metacubex/mipstack` and `metacubex/zerotier-go` ride in
+  with ZeroTier; `quic-go` `0.59` → `0.61`, `sing-tun` `0.4.21` → `0.4.22`,
+  `tailscale` to v1.102.2, `gvisor`, `mieru` `3.35.0`, `restls-client-go`
+  `0.1.9` and `bart` `0.29.0` come along. JNI/facade surface and `bridgeABI`
+  (`3`) unchanged; all three ABIs rebuild clean and export the expected 11
+  symbols.
+- CI and the release pipeline now pin Go `1.25` (was `1.23`); `govulncheck`
+  requires it since `x/vuln` v1.6.0. `go.mod` still declares `go 1.20`.
+
 ## [0.3.2] — 2026-07-19
 
 ### Changed
