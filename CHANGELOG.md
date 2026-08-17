@@ -8,6 +8,16 @@ Until v1.0 the public API is considered unstable; breaking changes bump
 
 ## [Unreleased]
 
+### Fixed
+- A core crash no longer erases its own traceback. `captureStdFd` redirects fd
+  2 into a pipe drained by a goroutine in the same process, so a fatal signal
+  killed the reader before the runtime's traceback could be forwarded — every
+  segfault reached logcat as nothing but the Zygote's `signal 11` line, with no
+  tombstone (the Go runtime handles the signal itself, so debuggerd never sees
+  it). `debug.SetCrashOutput` now points the runtime at `crash.log`, written
+  next to the file-log sink and therefore in the consumer's external files dir,
+  where it survives the process and can be pulled with `adb`.
+
 ## [0.3.3] — 2026-08-17
 
 ### Changed
