@@ -27,7 +27,7 @@ jobs:
       - name: Upgrade vulnerable modules to fixed versions
         working-directory: src/main/jni/core
         run: |
-          go get golang.org/x/net@v0.55.0 golang.org/x/text@v0.39.0
+          go get golang.org/x/net@v0.56.0 golang.org/x/text@v0.39.0
           go mod tidy
           go list -m golang.org/x/net golang.org/x/text
       - name: Commit remediated module locks
