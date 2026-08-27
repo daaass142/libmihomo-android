@@ -91,15 +91,19 @@ func defaultSetupParams() *SetupParams {
 }
 
 func readFile(path string) ([]byte, error) {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	safePath, err := resolveAllowedPath(path)
+	if err != nil {
 		return nil, err
 	}
-	data, err := os.ReadFile(path) // #nosec G304 -- path supplied by consumer, runs in app sandbox
+	if _, err := os.Stat(safePath); os.IsNotExist(err) {
+		return nil, err
+	}
+	data, err := os.ReadFile(safePath) // #nosec G304 -- validated by resolveAllowedPath
 	if err != nil {
 		return nil, err
 	}
 
-	return data, err
+	return data, nil
 }
 
 func updateConfig(params *UpdateParams) {

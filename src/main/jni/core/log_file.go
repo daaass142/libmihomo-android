@@ -33,22 +33,28 @@ var (
 func setLogFilePathImpl(path string) error {
 	fileSinkMu.Lock()
 	defer fileSinkMu.Unlock()
-	if fileSinkPath == path {
-		return nil
-	}
-	closeFileSinkLocked()
 	if path == "" {
+		closeFileSinkLocked()
 		fileSinkPath = ""
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+
+	safePath, err := resolveAllowedPath(path)
+	if err != nil {
 		return err
 	}
-	if err := openFileSinkLocked(path); err != nil {
+	if fileSinkPath == safePath {
+		return nil
+	}
+	closeFileSinkLocked()
+	if err := os.MkdirAll(filepath.Dir(safePath), 0o700); err != nil {
 		return err
 	}
-	fileSinkPath = path
-	setCrashOutputLocked(filepath.Join(filepath.Dir(path), crashFileName))
+	if err := openFileSinkLocked(safePath); err != nil {
+		return err
+	}
+	fileSinkPath = safePath
+	setCrashOutputLocked(filepath.Join(filepath.Dir(safePath), crashFileName))
 	return nil
 }
 
@@ -57,9 +63,19 @@ func setLogFilePathImpl(path string) error {
 // process — so a crash killed its own reader and left no trace. SetCrashOutput
 // hands the runtime a real file instead, which survives the process.
 func setCrashOutputLocked(path string) {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	safePath, err := resolveAllowedPath(path)
 	if err != nil {
-		log.Warnln("[APP] crash output %s: %v", path, err)
+		log.Warnln("[APP] crash output path: %v", err)
+		return
+	}
+	f, err := os.OpenFile(safePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
+	if err != nil {
+		log.Warnln("[APP] crash output %s: %v", safePath, err)
+		return
+	}
+	if err := f.Chmod(0o600); err != nil {
+		log.Warnln("[APP] crash output chmod %s: %v", safePath, err)
+		_ = f.Close()
 		return
 	}
 	if err := debug.SetCrashOutput(f, debug.CrashOptions{}); err != nil {
@@ -74,8 +90,12 @@ func setCrashOutputLocked(path string) {
 }
 
 func openFileSinkLocked(path string) error {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
+		return err
+	}
+	if err := f.Chmod(0o600); err != nil {
+		_ = f.Close()
 		return err
 	}
 	info, statErr := f.Stat()
