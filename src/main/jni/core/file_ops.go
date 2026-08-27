@@ -7,7 +7,12 @@ import "os"
 // invokeAction already runs handleAction in its own goroutine, so file ops
 // do not need an inner one.
 func handleDelFile(path string, result ActionResult) {
-	fileInfo, err := os.Stat(path)
+	safePath, err := resolveAllowedPath(path)
+	if err != nil {
+		result.error(err.Error())
+		return
+	}
+	fileInfo, err := os.Stat(safePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			result.success("")
@@ -17,9 +22,9 @@ func handleDelFile(path string, result ActionResult) {
 		return
 	}
 	if fileInfo.IsDir() {
-		err = os.RemoveAll(path)
+		err = os.RemoveAll(safePath)
 	} else {
-		err = os.Remove(path)
+		err = os.Remove(safePath)
 	}
 	if err != nil {
 		result.error(err.Error())
