@@ -13,8 +13,9 @@ import (
 )
 
 type InitParams struct {
-	HomeDir string `json:"home-dir"`
-	Version int    `json:"version"`
+	HomeDir          string   `json:"home-dir"`
+	Version          int      `json:"version"`
+	AllowedPathRoots []string `json:"allowed-path-roots,omitempty"`
 }
 
 type SetupParams struct {
